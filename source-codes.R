@@ -450,14 +450,14 @@ generate.one.gKSS=function(G, C, p, g.kernel=CalculateWLKernel,level=3){
   
   J.kernel = S.mat * K
   
-  W=rep(1/n,n)
-  J.kernel.out=J.kernel
-  stats.value = as.numeric(t(W)%*%J.kernel%*%W) 
+  #W=rep(1/n,n)
+  #J.kernel.out=J.kernel
+  stats.value = mean(J.kernel) #as.numeric(t(W)%*%J.kernel%*%W) 
 
   #Return:
   #stats.value: gKSS^2
   #J.kernel: J kernel matrix for wild bootstrap 
-  list(stats.value=stats.value,J.kernel=J.kernel.out, K=K, S=S.mat)
+  list(stats.value=stats.value,J.kernel=J.kernel, K=K, S=S.mat)
 }
 
 GOF_IRG = function(test_G, C , p_0, M = 200, g.kernel= CalculateWLKernel, level = 3, alpha = 0.05){
