@@ -1,14 +1,12 @@
 ######## Methodology ###########
 
 # re-direct to the desired directory
-setwd("") #for windows working directory
+setwd("...") #for windows working directory
 source("source-codes.R")
 
-#### For spectral test
+#### For spectral test ####
 library(mgcv)
 library(RMTstat)
-
-# and the functions
 source('utils.R')
 
 ###############################
@@ -20,41 +18,28 @@ M = 200
 m = 50
 ######### Paramter setting ##############
 
-Q_mat = 1
 group_size = 2
 
 ##### kernel to use ########
 
 g.kernel= CalculateWLKernel
-#CalculateGraphletKernel 
-level = 2  # parameter for the kernel setting
+            #CalculateGraphletKernel 
+
+level = 3  # parameter for the kernel setting
 
 ################Model Parameters##############
 
-if(group_size == 1) bs = c(10, 40)
-if(group_size == 2) bs = c(25, 25)
+if(group_size == 1) bs = c(8, 22)
+if(group_size == 2) bs = c(15, 15)
 
-if(Q_mat == 1){
-  Q = matrix(
+Q = matrix(
     c(
-      0.2, 0.01,
-      0.01, 0.2
+      0.29, 0.01,
+      0.01, 0.22
     ),
     ncol = 2,
     byrow = TRUE
   )
-}
-
-if(Q_mat == 2){
-  Q = matrix(
-    c(
-      0.6, 0.1,
-      0.1, 0.6
-    ),
-    ncol = 2,
-    byrow = TRUE
-  )
-}
 
 C = c(rep(1,bs[1]), rep(2,bs[2]))
 
@@ -71,18 +56,12 @@ p_0 = p
 ##############Simulations from null model##############
 #######################################################
 
-cores <- detectCores()/2
-cl <- makeCluster(3)
-registerDoParallel(cl)
+statistic = numeric(M)
+for (i in 1:M) {
+  g <- sample_IRG(p_0)
+  statistic[i] = generate.one.gKSS(g, C, p_0, g.kernel, level)$stats.value
+}
 
-# Parallel sampling of null distribution
-statistic <- foreach(i = 1:M, .combine = c, .packages = c("igraph", "graphkernels"),
-                     .export = c("symmetricize")) %dopar% {
-                       g <- sample_IRG(p_0)
-                       generate.one.gKSS(g, C, p_0, g.kernel, level)$stats.value
-                     }
-
-stopCluster(cl)
 
 critical_value_lower = quantile(statistic,alpha/2)
 critical_value_upper = quantile(statistic,(1-alpha/2))
@@ -96,7 +75,7 @@ median(statistic)
 ######### Over k #############
 
 # Define the number of hubs
-R = 3
+R = 2
 k = seq(2, 15, 1)
 l = length(k)
 
@@ -153,26 +132,19 @@ for (i in 1:l) {
     A = as_adjacency_matrix(test_G, type = "both")
     
     K0 = 2
-    stat_ST = GoFTestBoot(A, K0, n.dim = K0, n.b = 50, use.boot = T)$test.stat.boot 
-    decision_ST[j] = isTRUE(max(stat_ST) > qtw(alpha / 2, lower.tail = F))
+    stat_ST = GoFTestBoot_truecom(A, K0, n.dim = K0, clusters = C, n.b = 50, use.boot = T)$test.stat.truecom
+    decision_ST[j] = isTRUE(stat_ST > qtw(alpha / 2, lower.tail = F))
     
     ########gKSS with estimated parameters###########
     
     p_h = matrix(Q_h[C,C], length(C), length(C))
     diag(p_h) = 0
     
-    cores <- detectCores()/2
-    cl <- makeCluster(cores)
-    registerDoParallel(cl)
-    
-    # Parallel sampling of null distribution
-    statistic_e <- foreach(i = 1:M, .combine = c, .packages = c("igraph", "graphkernels"),
-                           .export = c("symmetricize")) %dopar% {
-                             g <- sample_IRG(p_h)
-                             generate.one.gKSS(g, C, p_h, g.kernel, level)$stats.value
-                           }
-    
-    stopCluster(cl)
+    statistic_e = numeric(M)
+    for (r in 1:M) {
+      g <- sample_IRG(p_h)
+      statistic_e[r] = generate.one.gKSS(g, C, p_h, g.kernel, level)$stats.value
+    }
     
     critical_value_lower_e = quantile(statistic_e,alpha/2)
     critical_value_upper_e = quantile(statistic_e,(1-alpha/2))
@@ -192,24 +164,16 @@ for (i in 1:l) {
   sd_max_deg[i]  = sd(max_deg)
   total_mismatches[i] = sum(mismatches)
   avg_attempts[i] = mean(attempts)
-  print(i)
-  
-  save(list = c("power_gKSS","power_gKSS_e", "power_GLR", "power_ST", "mean_max_deg", "median_max_deg", "sd_max_deg", "total_mismatches", "avg_attempts"), 
-       file = paste0(Q_mat,group_size, ".RData"))
+
 }
 
 ################## Constructing a data frame ######################
-
-if(Q_mat == 0) Q_m = c(rep("00", length(k)))
-if(Q_mat == 1) Q_m = c(rep("01", length(k)))
-if(Q_mat == 2) Q_m = c(rep("02", length(k)))
 
 if(group_size == 1) n_vec = c(rep("A", length(k)))
 if(group_size == 2) n_vec = c(rep("B", length(k)))
 
 
-power.df <- data.frame(k, power_gKSS, power_gKSS_e, power_GLR, power_ST, Q_m, n_vec, mean_max_deg, median_max_deg, sd_max_deg, total_mismatches, avg_attempts)
-
+power.df <- data.frame(k, power_gKSS, power_gKSS_e, power_GLR, power_ST, n_vec, mean_max_deg, median_max_deg, sd_max_deg, total_mismatches, avg_attempts)
 {
   pow = power_gKSS
   
@@ -247,7 +211,7 @@ assign("power.df_k", power.df)
 
 # Define the number of hubs
 R = seq(0, 10, 1)
-k = 4
+k = 3
 l = length(R)
 
 power_gKSS = numeric(l)
@@ -292,6 +256,7 @@ for (i in 1:l) {
     est = MLE.est(test_G, C)
     Q_h = est$estimates
     E = est$E
+    
     stat_GLR = -2*((E[1,1]*log(Q[1,1]) + (choose(bs[1],2) - E[1,1])*log(1 - Q[1,1]) +
                       E[1,2]*log(Q[1,2]) + (bs[1]*bs[2] - E[1,2])*log(1 - Q[1,2]) +
                       E[2,2]*log(Q[2,2]) + (choose(bs[2],2) - E[2,2])*log(1 - Q[2,2])) - (E[1,1]*log(Q_h[1,1]) + (choose(bs[1],2) - E[1,1])*log(1 - Q_h[1,1]) +
@@ -304,26 +269,19 @@ for (i in 1:l) {
     A = as_adjacency_matrix(test_G, type = "both")
     
     K0 = 2
-    stat_ST = GoFTestBoot(A, K0, n.dim = K0, n.b = 50, use.boot = T)$test.stat.boot 
-    decision_ST[j] = isTRUE(max(stat_ST) > qtw(alpha / 2, lower.tail = F))
+    stat_ST = GoFTestBoot_truecom(A, K0, n.dim = K0, clusters = C, n.b = 50, use.boot = T)$test.stat.truecom
+    decision_ST[j] = isTRUE(stat_ST > qtw(alpha / 2, lower.tail = F))
     
     ########gKSS with estimated parameters###########
-
+    
     p_h = matrix(Q_h[C,C], length(C), length(C))
     diag(p_h) = 0
     
-    cores <- detectCores()-2
-    cl <- makeCluster(cores)
-    registerDoParallel(cl)
-    
-    # Parallel sampling of null distribution
-    statistic_e <- foreach(i = 1:M, .combine = c, .packages = c("igraph", "graphkernels"),
-                           .export = c("symmetricize")) %dopar% {
-                             g <- sample_IRG(p_h)
-                             generate.one.gKSS(g, C, p_h, g.kernel, level)$stats.value
-                           }
-    
-    stopCluster(cl)
+    statistic_e = numeric(M)
+    for (r in 1:M) {
+      g <- sample_IRG(p_h)
+      statistic_e[r] = generate.one.gKSS(g, C, p_h, g.kernel, level)$stats.value
+    }
     
     critical_value_lower_e = quantile(statistic_e,alpha/2)
     critical_value_upper_e = quantile(statistic_e,(1-alpha/2))
@@ -343,24 +301,16 @@ for (i in 1:l) {
   sd_max_deg[i]  = sd(max_deg)
   total_mismatches[i] = sum(mismatches)
   avg_attempts[i] = mean(attempts)
-  print(i)
-  
-  save(list = c("power_gKSS","power_gKSS_e", "power_GLR", "power_ST", "mean_max_deg", "median_max_deg", "sd_max_deg", "total_mismatches", "avg_attempts"), 
-       file = paste0(Q_mat,group_size, ".RData"))
+
 }
 
 ################## Constructing a data frame ######################
-
-if(Q_mat == 0) Q_m = c(rep("00", length(R)))
-if(Q_mat == 1) Q_m = c(rep("01", length(R)))
-if(Q_mat == 2) Q_m = c(rep("02", length(R)))
 
 if(group_size == 1) n_vec = c(rep("A", length(R)))
 if(group_size == 2) n_vec = c(rep("B", length(R)))
 
 
-power.df <- data.frame(R, power_gKSS, power_gKSS_e, power_GLR, power_ST, Q_m, n_vec, mean_max_deg, median_max_deg, sd_max_deg, total_mismatches, avg_attempts)
-
+power.df <- data.frame(R, power_gKSS, power_gKSS_e, power_GLR, power_ST, n_vec, mean_max_deg, median_max_deg, sd_max_deg, total_mismatches, avg_attempts)
 {
   pow = power_gKSS
   
@@ -393,6 +343,7 @@ power.df <- data.frame(R, power_gKSS, power_gKSS_e, power_GLR, power_ST, Q_m, n_
 }
 
 assign("power.df_R", power.df)
+
 
 ################## Final Plot ####################
 
@@ -432,5 +383,3 @@ multi <- ggarrange(p1,p2, #plots that are going to be included in this multipane
                    common.legend = T, widths = c(0.8, 1)) 
 annotate_figure(multi, 
                 left = "Proportion rejected")
-
-
