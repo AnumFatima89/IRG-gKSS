@@ -329,3 +329,15 @@ Generate.P.diag <- function(n, K, model = 'sbm', dcbm.psi.bound = c(0, 1),
   }
   return(Theta %*% B %*% t(Theta))
 }
+
+##### GOF test for IRG by Dan and Bhattacharya ######
+
+GoFStat_IRG <- function(A, P) {
+  tilde.A <- (A - P + diag(diag(P))) / sqrt((n-1)*P*(1-P))
+  lambda <- slanczos(tilde.A, k = 1, kl = 1)$values
+  lambda.1 <- lambda[1]
+  lambda.n <- -lambda[2]
+  sig.1 <- max(abs(lambda))
+  #return(n^(2/3) * (c(lambda.1, lambda.n, sig.1) - 2))
+  return(n^(2/3) * (sig.1 - 2))
+}
