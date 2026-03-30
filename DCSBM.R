@@ -24,11 +24,9 @@ g.kernel_gr= grakel$GraphletSampling(k=3L)
 alpha=0.05
 M = 200
 m = 50
-B = 500
 n=27
 
 ###############################
-
 
 a = matrix(
     c(
@@ -53,6 +51,7 @@ beta <- log(runif(n, 0, 1))
 C = sample(c(1,2),n,replace = TRUE)
 g = outer(beta, beta, `+`) + matrix(a[C,C], length(C), length(C)) 
 p = exp(g) 
+diag(p) = 0
 
 ############### Testing the fit of an ERMM ###########
 
