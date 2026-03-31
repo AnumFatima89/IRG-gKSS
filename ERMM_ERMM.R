@@ -268,15 +268,7 @@ new_names = c("Q_12", "power","n_vec", "Q_m", "power_l", "power_u", "Test")
 }
 
 power.df = rbind(power.LRT, power.gKSS, power.gKSS_5, power.gKSS_25, power.gKSS_75)
-assign(paste0("power.df_", Q_mat,group_size), power.df)
-
-########################### Indvidual Plot #########################################
-
-pow %>% ggplot() + geom_point(aes(x = Q_12, y = power_gKSS, shape = B, colour = B)) + geom_line(aes(x = Q_12, y = power_gKSS, color = B))+
-  geom_ribbon(aes(ymin = power_gKSS_l, ymax = power_gKSS_u, x = Q_12, fill = B), alpha = 0.2) +
-  geom_abline(intercept = alpha, slope = 0, col = "gold") + 
-  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"), legend.position="top") +
-  ylim(0, 1) + labs(y = "Proportion rejected", x = expression("Q"['12']))
+assign(paste0("power_", Q_mat,group_size), power.df)
 
 ################## Creating data frame for grid plot ####################
 
@@ -299,9 +291,9 @@ Q_m_names <- c(
 legend_order = c("5%", "25%", "75%", "no edge_resamp", "LR")
 my_colours = hcl.colors(length(legend_order), "Dark 3")
 
-power %>% ggplot(aes(x = Q_12, y = power)) + geom_point(aes(shape = B, colour = B)) + geom_line(aes(color = B))+
-  geom_ribbon(aes(ymin = power_l, ymax = power_u, x = Q_12, fill = B), alpha = 0.2) +
-  geom_abline(intercept = alpha, slope = 0, col = "gold") + #scale_x_continuous(breaks = seq(0, length(unique(pow$Q_12))-1, by = 2)) +
+power %>% ggplot(aes(x = Q_12, y = power)) + geom_point(aes(shape = Test, colour = Test)) + geom_line(aes(color = Test))+
+  geom_ribbon(aes(ymin = power_l, ymax = power_u, x = Q_12, fill = Test), alpha = 0.2) +
+  geom_abline(intercept = alpha, slope = 0, col = "gold") + 
   theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"), legend.position="top", strip.background =element_rect(fill="#e4e7eb"), strip.text.x = element_text(size = 12)) +
   ylim(0, 1) + labs(y = "Proportion rejected", x = expression("Q"['12'])) + scale_color_manual(values=my_colours, breaks=legend_order) +
   scale_shape_manual(values = c(0, 1, 2, 3, 4), breaks=legend_order) + scale_fill_manual(values = my_colours, breaks=legend_order) +
