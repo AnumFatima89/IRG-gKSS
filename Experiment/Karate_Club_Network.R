@@ -39,6 +39,8 @@ results_ERMM = GOF_IRG(test_G, C , p, M, g.kernel, level, alpha)
 isTRUE(as.numeric(results_ERMM$LQ_e) >= as.numeric(results_ERMM$obs.test.stat) || as.numeric(results_ERMM$obs.test.stat) >= as.numeric(results_ERMM$UQ_e))
 #False means do not reject null
 
+results_ERMM$P_value
+
 ########## Tesiting the fit of an ERMM with four groups ###########
 
 load("GOF test for an observed network/Karate_club/four_communities.RData")
@@ -68,6 +70,8 @@ results_ERMM.L4 = GOF_IRG(test_G, C , p, M, g.kernel, level, alpha)
 isTRUE(as.numeric(results_ERMM.L4$LQ_e) >= as.numeric(results_ERMM.L4$obs.test.stat) || as.numeric(results_ERMM.L4$obs.test.stat) >= as.numeric(results_ERMM.L4$UQ_e))
 #False means do not reject null
 
+results_ERMM.L4$P_value
+
 ########## Tesiting the fit of an DCSBM ###########
 
 test_G = G
@@ -83,6 +87,8 @@ p = p_h
 results_DCSBM = GOF_IRG(test_G, C , p, M, g.kernel, level, alpha)
 isTRUE(as.numeric(results_DCSBM$LQ_e) >= as.numeric(results_DCSBM$obs.test.stat) || as.numeric(results_DCSBM$obs.test.stat) >= as.numeric(results_DCSBM$UQ_e))
 #False means do not reject null
+
+results_DCSBM$P_value
 
 ######Spectral test ##############
 
@@ -111,3 +117,7 @@ diag(p) = 0
 results_ER = GOF_IRG(test_G, C , p, M , g.kernel, level , alpha)
 isTRUE(as.numeric(results_ER$LQ_e) >= as.numeric(results_ER$obs.test.stat) || as.numeric(results_ER$obs.test.stat) >= as.numeric(results_ER$UQ_e))
 #False means do not reject null
+
+results_ER$P_value
+
+
