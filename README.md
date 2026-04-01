@@ -107,3 +107,13 @@ Originally developed for:
 > The Annals of Statistics, 44(1): 401–424.
 
 The implementation here includes minor modifications to facilitate comparison with the IRG-gKSS framework.
+
+## Data
+
+This repository includes external datasets used for reproducibility of the experiments.
+
+- **Lazega Lawyers dataset**  
+  Sourced from: https://www.stats.ox.ac.uk/~snijders/siena/Lazega_lawyers_data.htm  
+
+These datasets are **not owned** by the authors of this repository.  
+Please refer to the corresponding data directory for full attribution and usage information.
