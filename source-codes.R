@@ -14,17 +14,6 @@ library(foreach)
 library(qgraph)
 library(sjmisc)
 library(boot)
-{
-#install.packages("remotes")
-#remotes::install_github("LTLA/bluster")
-#library(bluster)
-}
-{
-library(devtools)
-library(remotes)
-library(GoodFitSBM)
-#remotes::install_github("Roy-SR-007/GoodFitSBM")
-}
 library(ggrepel)
 library(digest)
 library(Matrix)
@@ -70,9 +59,6 @@ sample_IRG = function(p, vlab = MOAR_LETTERS(3)){
   
   # graph from the adjacency matrix
   G = igraph::graph_from_adjacency_matrix(adjsymm, mode = "undirected", weighted = NULL)
-  
-  # assigning vertex attributes
-  #V(G)$name <- vlab[1:n]
   
   return(G)
 }
@@ -136,8 +122,6 @@ network_with_clique = function(G, C, K, max.rep = 20){
       new.edge.labels[i] = edge.types[C[new_edges[1,i]],C[new_edges[2,i]]]
     }
     new_type = as.data.frame(table(new.edge.labels, dnn = list("type")), responseName = "type_n")
-    #new_type = sort(unique(new.edge.labels))
-    #new_type_n = as.numeric(table(new.edge.labels))
     
     ap = as_ids(E(G_pc)[new_edges[1,] %--% new_edges[2,]])
     
@@ -147,8 +131,6 @@ network_with_clique = function(G, C, K, max.rep = 20){
     }
     else{
       ap_type = as.data.frame(table(E(G_pc)[ap]$label, dnn = list("type")), responseName = "type_n")
-      #ap_type = sort(unique(E(G_pc)[ap]$label))
-      #ap_type_n = as.numeric(table(E(G_pc)[ap]$label))
       to_del_type = merge(new_type, ap_type,by=c("type"), all=TRUE)
       to_del_type[is.na(to_del_type)] <- 0
       to_del_type$to_del = to_del_type$type_n.x - to_del_type$type_n.y
@@ -192,19 +174,6 @@ network_with_clique = function(G, C, K, max.rep = 20){
   }
 }
 
-#simulate network with a planted cliques of size K 
-sample_IRG_planted_clique = function(p,K){
-  if(K==0 || K==1){G = sample_IRG(p)}
-  if(K>1){
-    G = sample_IRG(p)
-    smpl = sample(V(G)$name,K)
-    new_edges = as.vector(combinations(smpl, k = 2, layout = "column"))
-    G <- G + edges(new_edges)
-    G = simplify(G, remove.multiple = TRUE, remove.loops = TRUE)
-  }
-  return(G)
-}
-
 ##################### Simulating ERMMs with planted hubs #######################
 
 planted_hub <- function(G, d_m, k, C) {
@@ -214,8 +183,6 @@ planted_hub <- function(G, d_m, k, C) {
   u_max <- which(d == d_m)[1]
   if (is.na(u_max)) return(G)
   
-  #range_max <- max(1, ceiling(k * s_d))
-  #d_star <- sample(seq(d_m + 1, d_m + range_max), 1)
   d_star <- max(1, d_m + ceiling(k * s_d))
   n_new_nei <- d_star - degree(G, u_max)
   
@@ -240,8 +207,6 @@ planted_hub <- function(G, d_m, k, C) {
   } else {
     pot_nei <- sample(filtered_targets, n_new_nei)
   }
-  
-  #new_edges <- as.vector(rbind(rep(u_max, length(pot_nei)), new_nei))
   
   # Loop to build to_del while avoiding duplicates
   
@@ -309,109 +274,6 @@ planted_hubs <- function(G, Rep = 5, k = 3, C) {
 }
 
 ################################################################################
-#################### Configuration model with two groups #######################
-################################################################################
-
-config.m_net = function(deg1,deg2){
-  degs = c(deg1,deg2)
-  if (sum(degs) %% 2 != 0){print("Sum of degrees is not even.")}
-  else{
-    G <- sample_degseq(degs, method = "vl")
-    ml <- MOAR_LETTERS(3)
-    V(G)$name = ml[1:gorder(G)]
-    V(G)$group = c(rep(1,length(deg1)),rep(2,length(deg2)))
-    
-    G
-  }
-}
-
-################################################################################
-######################### Random Geometric Graphs ##############################
-################################################################################
-
-
-sample.RGG = function(n,r){
-  ##Euclidean distance  
-  get.dist = function(x)
-  {
-    sqrt(x[1]^2 + x[2]^2)
-  }
-  ## Generate matrix with total number of possible edges N(N-1)/2 ##
-  get.pairs = combinations(n,2) 
-  ##random points in 2D with uniform distribution
-  rnd.points = matrix(runif(2 * n), ncol = 2)
-  perms = get.pairs
-  ###Caculate the difference between the points to calculate euclidien distance between each pair
-  Edges = apply(perms, 1, FUN = function(x){
-    vec.diff = rnd.points[x[1], ] - rnd.points[x[2], ]
-    get.dist(vec.diff)
-  })
-  
-  res = cbind(Edges, perms)
-  colnames(res) = c('E', 'V1', 'V2')
-  
-  matnew<-res[res[, 'E'] <= r,] 
-  if(is.matrix(matnew) ==  "FALSE") {
-    matnew = matrix(matnew, nrow = 1)
-    colnames(matnew) = c('E', 'V1', 'V2')
-  }
-  rgedge<-cbind(matnew[,'V1'], matnew[,'V2'])
-  
-  if(length(matnew[,'E']) == 0) G = make_empty_graph(n, directed = FALSE)
-  else G = graph_from_edgelist(rgedge, directed=FALSE)
-  G
-}  
-
-sample.RGG.with.two.groups = function(bs,r){
-  n = bs[1]+bs[2]
-  ### Euclidian distance ###
-  get.dist = function(x)
-  {
-    sqrt(x[1]^2 + x[2]^2)
-  }
-  ## Generate matrix with total number of possible edges N(N-1)/2 ##
-  v = seq(1,n,1)
-  v1 = v[1:bs[1]]
-  v2 = v[(bs[1] + 1):(bs[1] + bs[2])]
-  get.pairs = combinations(v,2) 
-  ##random points in 2D with uniform distribution
-  rnd.points = matrix(runif(2 * n), ncol = 2)
-  perms = get.pairs
-  ###Caculate the difference between the points to calculate euclidien distance between each pair
-  Edges = apply(perms, 1, FUN = function(x){
-    vec.diff = rnd.points[x[1], ] - rnd.points[x[2], ]
-    get.dist(vec.diff)
-  })
-  
-  res = cbind(Edges, perms)
-  colnames(res) = c('E', 'V1', 'V2')
-  
-  edgees = c()
-  for (i in 1:nrow(res)) {
-    if(res[i,2] %in% v1 && res[i,3] %in% v1 && res[i,1] < r[1]) edgees[i] = TRUE
-    else
-      if(res[i,2] %in% v1 && res[i,3] %in% v2 && res[i,1] < r[3]) edgees[i] = TRUE
-      else
-        if(res[i,2] %in% v2 && res[i,3] %in% v2 && res[i,1] < r[2]) edgees[i] = TRUE
-        else edgees[i] = FALSE
-  }
-  
-  matnew<-res[edgees,] 
-  
-  if(is.matrix(matnew) ==  "FALSE") {
-    matnew = matrix(matnew, nrow = 1)
-    colnames(matnew) = c('E', 'V1', 'V2')
-  }
-  rgedge<-cbind(matnew[,'V1'], matnew[,'V2'])
-  
-  if(length(matnew[,'E']) == 0) G = make_empty_graph(n, directed = FALSE)
-  else G = graph_from_edgelist(rgedge, directed=FALSE)
-  V(G)$name = ml[1:gorder(G)]
-  V(G)$group = c(rep(1,bs[1]), rep(2,bs[2]))
-  G
-}
-
-################################################################################
 ################# Test statistic and related GOF tests ########################
 ################################################################################
 # Using vvRKHS
@@ -450,9 +312,7 @@ generate.one.gKSS=function(G, C, p, g.kernel=CalculateWLKernel,level=3){
   
   J.kernel = S.mat * K
   
-  #W=rep(1/n,n)
-  #J.kernel.out=J.kernel
-  stats.value = mean(J.kernel) #as.numeric(t(W)%*%J.kernel%*%W) 
+  stats.value = mean(J.kernel) 
 
   #Return:
   #stats.value: gKSS^2
@@ -469,21 +329,14 @@ GOF_IRG = function(test_G, C , p_0, M = 200, g.kernel= CalculateWLKernel, level 
   
   ############## Simulations from null model ERMM-gKSS ##############
   
-  cores = detectCores()
-  cl <- makeCluster(cores)
-  registerDoParallel(cl)
-  
   statistic = c()
   for (i in 1:M){
     g = sample_IRG(p_0)
     statistic[i] = generate.one.gKSS(g, C, p_0, g.kernel,level)$stats.value
-    print(i)
   }
-  stopCluster(cl)
   
   critical_value_lower = quantile(statistic,alpha/2)
   critical_value_upper = quantile(statistic,(1-alpha/2))
-  #median(statistic)
   
   ######## Decision and P-value #############
   
@@ -549,9 +402,6 @@ GOF_IRG_resamp = function(test_G, C , p_0, s_size, M = 200, g.kernel= CalculateW
   
   ######## Decision and P-value #############
   
-  #decision = isTRUE(critical_value_lower >= test_stat ||test_stat >= critical_value_upper)
-  #False means do not reject null
-  
   pval <- two_tailed_pval(test_stat, statistic)
 
   ################### Output ERMM-gKSS#########################
@@ -581,278 +431,20 @@ generate.one.gKSS.cons.Ker=function(X, p, diagonal=1, v.scale=TRUE){
   list(stats.value=stats.value,J.kernel=J.kernel.out, S=S.mat, vs.KSD = KSD)
 }
 
-############################ Conditional gKSS #####################################  
-
-ERMM_gKSS = function(G, vgroup, g.kernel = CalculateWLKernel, level = 3){
-  C= vgroup
-  Y = G[,]
-  X = G[,]
-  X[lower.tri(X)] <- NA
-  diag(X) <- NA
-  el = edge.labels(G, C, L)
-  edges = which(X[,]==1)
-  non_edges = which(X[,]==0)
-  
-  P=list()
-  const = c()
-  counter = 1
-  for (i in 1:length(edges)) {
-    type = el[edges[i]]
-    to_add = non_edges[which(el[non_edges] == type)]
-    if(length(to_add) == 0) print("Warning: One type in the mixtiure graph is complete")
-    for (j in 1:length(to_add)) {
-      Y = G[,]
-      Y[edges[i]] = abs(1 - Y[edges[i]])
-      Y[to_add[j]] = abs(1 - Y[to_add[j]])
-      Y = symmetricize(Y ,method = c("ud"), adjacencyList = FALSE)
-      G_new = graph_from_adjacency_matrix(Y, mode = "undirected")
-      V(G_new)$names = V(G)$name
-      V(G_new)$group = V(G)$group
-      P[[counter]] = G_new
-      const[counter] = 1/(length(to_add))
-      counter = counter + 1
-    }
-    Y = G[,]
-    G_last = graph_from_adjacency_matrix(Y, mode = "undirected")
-    V(G_last)$names = V(G)$name
-    V(G_last)$group = V(G)$group
-    P[[counter]] = G_last
-  }
-  #P
-  #const
-  #outer(const, const, function(x,y)x*y)
-  
-  
-  kernel.matrix = g.kernel(P, level)
-  n = ncol(kernel.matrix)-1
-  K = kernel.matrix[1:n,1:n] + kernel.matrix[n+1,n+1]
-  K.vec = kernel.matrix[1:n,n+1]
-  K = K - outer(K.vec, K.vec, function(x,y)x+y)
-  sum(K*outer(const, const, function(x,y)x*y))/(gsize(G)*gsize(G))
-}
-
-GOF_ERMM = function(G, vmem, M, g.kernel = CalculateWLKernel, level = 3){
-  
-  n_cores = detectCores()
-  cl <- makeCluster(n_cores)
-  registerDoParallel(cl)
-  stat.list = c()
-  V(G)$group = vmem
-  stat.list[1] = ERMM_gKSS(G, V(G)$group)
-  for (i in 2:M) {
-    Y = G[,]                        # get the adjacency matrix from the graph
-    X = G[,]                        # get the adjacency matrix from the graph
-    X[lower.tri(X)] <- NA           # make the lower triangular of the adjacency matrix empty
-    diag(X) <- NA                   # make the diagonal of the adjacency matrix empty
-    el = edge.labels(G, V(G)$group, L)       # label the edges according to their type
-    edges.ind = which(X[,]==1)      # get the indices in X that corresponds to an edge
-    non_edges.ind = which(X[,]==0)  # get the indices in X that corresponds to a non-edge
-    
-    s = sample(edges.ind,1)
-    g_s = el[s]
-    to_add = non_edges.ind[which(el[non_edges.ind] == g_s)]
-    r = sample(to_add,1)
-    g_r = el[r]
-    if(g_s != g_r)print("g_s != g_r")
-    
-    Y[s] = abs(1 - Y[s])
-    Y[r] = abs(1 - Y[r])
-    Y = symmetricize(Y ,method = c("ud"), adjacencyList = FALSE)
-    G_new = graph_from_adjacency_matrix(Y, mode = "undirected")
-    V(G_new)$group = V(G)$group             # Re-assign node types
-    stat.list[i] = ERMM_gKSS(G_new, V(G_new)$group, g.kernel, level)
-    #plot(G_new, vertex.color = V(G_new)$group)
-    G <- G_new
-    #print(i)
-  }
-  stopCluster(cl)
-  
-  r = rank(stat.list, ties.method = "random")
-  pvalue <- min(r[1]/(length(r)), (length(r) + 1 - r[1])/(length(r)))
-  
-  list("statistic" = stat.list[1], "null_set" = stat.list, "p.value" = pvalue)
-}
-
 ################################################################################
 ########################### Kernel Computation #################################
 ################################################################################
 
-##################### WL-IMQ kernel ############################################
-
-WL_RBF <- function(graphs, h_max = 2, sigma = 0.1,  label_list) {
-  n <- length(graphs)  # Number of graphs
-  K_mat <- Matrix(0, n, n, sparse = TRUE)  # Initialize kernel matrix
-  
-  # Extract number of nodes and edges per graph
-  num_v <- sapply(graphs, vcount)
-  num_e <- sapply(graphs, ecount)
-  
-  # Compute the maximum degree across all graphs
-  degree_max <- sapply(graphs, function(g) max(degree(g)))
-  
-  # Initialize label storage
-  #label_list <- vector("list", n)
-  
-  #for (i in 1:n) {
-  #  label_list[[i]] <- rep(1, num_v[i])  # Initial labels are all "1"
-  #}
-  
-  # Compute kernel values based on initial vertex labels
-  for (i in 1:n) {
-    for (j in i:n) {
-      combined_labels <- unique(c(label_list[[i]],label_list[[j]]))
-      tab1 = sapply(combined_labels, function(x) sum(label_list[[i]] == x))
-      tab2 = sapply(combined_labels, function(x) sum(label_list[[j]] == x))
-      K_mat[i, j] <- exp(-(norm(tab1-tab2, type="2")^2)/(2*sigma*sigma))
-      K_mat[j, i] <- K_mat[i, j]
-    }
-  }
-  
-  # Weisfeiler-Lehman Iterations
-  for (h in 1:h_max) {
-    new_labels <- vector("list", n)
-    
-    for (i in 1:n) {
-      graph <- graphs[[i]]
-      old_labels <- label_list[[i]]
-      new_labels[[i]] <- rep("", num_v[i])
-      
-      for (v in V(graph)) {
-        neighbor_labels <- sort(old_labels[neighbors(graph, v)])
-        combined_label <- paste0(old_labels[v], ":", paste(neighbor_labels, collapse = ","))
-        new_labels[[i]][v] <- digest(combined_label, algo = "md5", serialize = FALSE)
-      }
-    }
-    
-    label_list <- new_labels  # Update labels
-    
-    # Update kernel values
-    for (i in 1:n) {
-      for (j in i:n) {
-        combined_labels <- unique(c(label_list[[i]],label_list[[j]]))
-        tab1 = sapply(combined_labels, function(x) sum(label_list[[i]] == x))
-        tab2 = sapply(combined_labels, function(x) sum(label_list[[j]] == x))
-        K_mat[i, j] <- K_mat[i, j] + exp(-(norm(tab1-tab2, type="2")^2)/(2*sigma*sigma))
-        K_mat[j, i] <- K_mat[i, j]
-      }
-    }
-  }
-  
-  return(K_mat)  # Return the computed WL kernel matrix
-}
-
-##################### WL-IMQ kernel ############################################
-
-WL_IMQ_kernel <- function(graphs, h_max = 2, label_list, mag = 1000) {
-  n <- length(graphs)  # Number of graphs
-  K_mat <- Matrix(0, n, n, sparse = TRUE)  # Initialize kernel matrix
-  
-  # Extract number of nodes and edges per graph
-  num_v <- sapply(graphs, vcount)
-  num_e <- sapply(graphs, ecount)
-  
-  # Compute the maximum degree across all graphs
-  degree_max <- sapply(graphs, function(g) max(degree(g)))
-  
-  # Compute kernel values based on initial vertex labels
-  for (i in 1:n) {
-    for (j in i:n) {
-      combined_labels <- unique(c(label_list[[i]], label_list[[j]]))
-      tab1 = sapply(combined_labels, function(x) sum(label_list[[i]] == x))
-      tab2 = sapply(combined_labels, function(x) sum(label_list[[j]] == x))
-      med = median(((tab1/sum(tab1)) - (tab2/sum(tab2)))^2)
-      offset = mean(c(tab1, tab2)) / mag
-      if (med == 0) {
-        K_mat[i, j] <- 1 / sqrt((norm((tab1 / sum(tab1)) - (tab2 / sum(tab2)), type = "2")^2) + offset)
-      } else {
-        K_mat[i, j] <- 1 / sqrt((norm((tab1 / sum(tab1)) - (tab2 / sum(tab2)), type = "2")^2) / med + offset)
-      }
-      K_mat[j, i] <- K_mat[i, j]
-    }
-  }
-  
-  # Weisfeiler-Lehman Iterations
-  for (h in 1:h_max) {
-    new_labels <- vector("list", n)
-    
-    # For each graph, generate new labels by combining node labels with neighbors
-    for (i in 1:n) {
-      graph <- graphs[[i]]
-      old_labels <- label_list[[i]]
-      new_labels[[i]] <- rep(0, num_v[i])  # Initialize new labels as zeros (will be replaced by integers)
-      
-      # Create a map to store the new labels
-      label_map <- list()
-      new_label_id <- 1  # Start with ID 1 for new labels
-      
-      # Update the node labels based on the neighbors
-      for (v in V(graph)) {
-        # Get the neighbors' labels
-        neighbor_labels <- sort(old_labels[neighbors(graph, v)])
-        
-        # Combine the current node's label with its neighbors' labels
-        combined_label <- paste0(old_labels[v], ":", paste(neighbor_labels, collapse = ","))
-        
-        # Check if this combined label already has a unique ID in the map
-        if (!combined_label %in% names(label_map)) {
-          label_map[[combined_label]] <- new_label_id
-          new_label_id <- new_label_id + 1  # Increment ID for next label
-        }
-        
-        # Assign the new label ID to the node
-        new_labels[[i]][v] <- label_map[[combined_label]]
-      }
-    }
-    
-    label_list <- new_labels  # Update labels
-    
-    # Update kernel values based on new labels
-    for (i in 1:n) {
-      for (j in i:n) {
-        combined_labels <- unique(c(label_list[[i]], label_list[[j]]))
-        tab1 = sapply(combined_labels, function(x) sum(label_list[[i]] == x))
-        tab2 = sapply(combined_labels, function(x) sum(label_list[[j]] == x))
-        med = median(((tab1/sum(tab1)) - (tab2/sum(tab2)))^2)
-        offset = mean(c(tab1, tab2)) / mag
-        if (med == 0) {
-          K_mat[i, j] <- K_mat[i, j] + 1 / sqrt((norm((tab1 / sum(tab1)) - (tab2 / sum(tab2)), type = "2")^2) + offset)
-        } else {
-          K_mat[i, j] <- K_mat[i, j] + 1 / sqrt((norm((tab1 / sum(tab1)) - (tab2 / sum(tab2)), type = "2")^2) / med + offset)
-        }
-        K_mat[j, i] <- K_mat[i, j]
-      }
-    }
-  }
-  
-  return(K_mat)  # Return the computed WL kernel matrix
-}
 
 ####### Computes Kernel inner product #######
 compute.kernel=function(P, g.kernel = CalculateWLKernel, level=3){
   n = length(P) - 1 
-#  if (identical(g.kernel, CalculateShortestPathKernel)) {
-#    kernel.matrix = g.kernel(P)
-#  } else {kernel.matrix = g.kernel(P, level)}
   kernel.matrix = g.kernel(P, level)
   K = kernel.matrix[1:n,1:n] + kernel.matrix[n+1,n+1]
   K.vec = kernel.matrix[1:n,n+1]
   K = K - outer(K.vec, K.vec, '+')
   return(K)
 }
-
-#removed from above function
-#else{
-#  if(identical(g.kernel,WL_IMQ_kernel)) {
-#    label_list = vector(mode = "list", length = length(P))
-#    label_list = lapply(label_list, function(x) C)
-#    kernel.matrix = g.kernel(P, level, label_list)
-#  }
-#  else{
-#    if(identical(g.kernel,WL_RBF)) {
-#      label_list = vector(mode = "list", length = length(P))
-#      label_list = lapply(label_list, function(x) C)
-#      kernel.matrix = g.kernel(P, level, sigma = 0.1, label_list)
-#    }
 
 compute.transition.list = function(X){
   n <- nrow(X)
@@ -907,14 +499,6 @@ two_tailed_pval <- function(test_stat, statistic) {
   pval <- 2 * min(p_lower, p_upper)
   return(min(pval, 1))  # Cap at 1
 }
-
-#stat_set = c(test_stat, statistic)
-#r = rank(stat_set, ties.method = "random")
-#pval = 2*min(r[1]/(length(r)), (length(r) + 1 - r[1])/(length(r)))
-
-# The following are valid only if the null distribution is roughly symmetric and unimodal.
-#pval <- mean(statistic >= as.numeric(test_stat)) + mean(statistic <= (2 * mean(statistic) - as.numeric(test_stat)))
-#pval <- mean(abs(statistic - mean(statistic)) >=  abs(as.numeric(test_stat) - mean(statistic)))
 
 perturb = function(X, a){
   ids = seq(1,length(X),1)
@@ -1047,43 +631,9 @@ edge.labels = function(G, C){
   return(elabels)
 }
 
-###################################################################
-
-community_aware_WL_kernel <- function(graphs, h = 3, C) {
-  graph_kernels <- list()
-  
-  for (g in graphs) {
-    V(g)$label <- as.character(C)
-    
-    # Step 3: Perform Weisfeiler-Lehman label propagation (community-aware)
-    for (i in 1:h) {
-      new_labels <- sapply(V(g), function(v) {
-        # Collect neighbor labels, restricting to the same community
-        neighbors <- neighbors(g, v)
-        same_community_neighbors <- neighbors[C[neighbors] == C[v]]
-        sorted_labels <- sort(unique(c(V(g)$label[v], V(g)$label[same_community_neighbors])))
-        return(paste(sorted_labels, collapse = "_"))
-      })
-      V(g)$label <- new_labels  # Update labels
-    }
-    
-    # Step 4: Convert labels into a feature vector for kernel computation
-    label_counts <- table(V(g)$label)
-    graph_kernels[[length(graph_kernels) + 1]] <- as.vector(label_counts)
-  }
-  
-  # Step 5: Compute RBF Kernel between graphs
-  kernel_matrix <- matrix(0, length(graphs), length(graphs))
-  for (i in 1:length(graphs)) {
-    for (j in 1:length(graphs)) {
-      kernel_matrix[i, j] <- exp(-sum((graph_kernels[[i]] - graph_kernels[[j]])^2))
-    }
-  }
-  
-  return(kernel_matrix)
-}
-
+#######################################
 ####### Spectral test extensions ######
+#######################################
 
 GoFStat_truecom <- function(A, K0, clusters) {
   n <- nrow(A)
