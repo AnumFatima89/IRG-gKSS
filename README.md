@@ -59,7 +59,6 @@ Sys.setenv(RETICULATE_PYTHON = "path/to/your/python")
 
 ```r
 source("source-code.R")
-```
 
 # Example group labels
 C <- c(1, 1, 1, 2, 2, 2)
@@ -77,6 +76,7 @@ G <- sample_IRG(p)
 result <- GOF_IRG(test_G = G, C = C, p_0 = p)
 
 print(result$P_value)
+```
 
 ## Version Information
 
