@@ -97,7 +97,7 @@ grakel        # 0.1.8
 
 ## Spectral Test Extensions
 
-The spectral test extensions included in this repository are adapted from publicly available code:
+The spectral test extensions (utils.R) included in this repository are adapted from publicly available code:
 
 https://www.dropbox.com/scl/fi/evx0mvcgmgfeixm9ubhz2/gof_test_sbm.zip
 
