@@ -40,6 +40,7 @@ install.packages(c(
   "doParallel", "foreach", "qgraph", "sjmisc", "boot",
   "devtools", "remotes", "ggrepel", "digest", "Matrix", "tictoc"
 ))
+```
 
 ## Python (optional, for GraKeL version)
 
@@ -52,11 +53,13 @@ and configure `reticulate` to point to your Python environment:
 
 ```r
 Sys.setenv(RETICULATE_PYTHON = "path/to/your/python")
+```
 
 ## Basic example
 
 ```r
 source("source-code.R")
+```
 
 # Example group labels
 C <- c(1, 1, 1, 2, 2, 2)
@@ -90,6 +93,7 @@ graphkernels  # 1.6.1
 Matrix        # 1.7.3
 reticulate    # 1.42.0
 grakel        # 0.1.8
+```
 
 ## Spectral Test Extensions
 
