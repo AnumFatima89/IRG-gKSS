@@ -72,7 +72,7 @@ p <- matrix(c(
 # Simulate a graph
 G <- sample_IRG(p)
 
-# Run goodness-of-fit test
+# Run IRG-gKSS test
 result <- GOF_IRG(test_G = G, C = C, p_0 = p)
 
 print(result$P_value)
