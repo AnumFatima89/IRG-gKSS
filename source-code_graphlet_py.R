@@ -4,12 +4,6 @@ library(foreach)
 library(Matrix)
 library(reticulate)
 
-##do not use if anaconda is working ## use_python("C:/ProgramData/anaconda3/python.exe")
-#conda_create("r-reticulate-env")
-# Use your conda environment where grakel is installed
-#use_condaenv("r-reticulate-env", required = TRUE)
-
-# Alternative (newer version)
 Sys.setenv(RETICULATE_PYTHON = "C:/Users/fatima/grakel-env/Scripts/python.exe")
 
 # Import GraKeL and other Python modules
